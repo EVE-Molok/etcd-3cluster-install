@@ -1,12 +1,32 @@
-# master01节点下载证书生成工具:cfssl和cfssljson命令
-wget "https://mirrors.chenby.cn/https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssl_1.6.4_linux_amd64" -O /usr/local/bin/cfssl
-wget "https://mirrors.chenby.cn/https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssljson_1.6.4_linux_amd64" -O /usr/local/bin/cfssljson
+# 环境准备：三台centos7系统服务器
+ip分别为：
+192.168.100.10、
+192.168.100.11、
+192.168.100.12
+
+# 做好主机名映射
+vim /etc/hosts
+192.168.100.10 k8s-master01
+192.168.100.11 k8s-master02
+192.168.100.12 k8s-master03
+
+# 免密登录
+ssh-keygen
+全部默认回车即可
+
+# 分发公钥给其他节点
+ssh-copy-id root@k8s-master02
+ssh-copy-id root@k8s-master03
+
+# k8s-master01节点下载证书生成工具:cfssl和cfssljson命令
+wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssl_1.6.4_linux_amd64" -O /usr/local/bin/cfssl
+wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssljson_1.6.4_linux_amd64" -O /usr/local/bin/cfssljson
 
 # 添加执行权限
 chmod +x /usr/local/bin/cfssl*
 
-# 下载etcd3.5.10
-wget https://mirrors.chenby.cn/https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
+# 下载etcd-3.5.10
+wget https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
 
 # 解压ETCD
 tar xf etcd-3.5.10-linux-amd64.tar.gz
@@ -22,7 +42,6 @@ API version: 3.5
 
 # 创建工作目录：
 mkdir /data/etcd/
-
 # 创建证书目录：
 mkdir /etc/etcd/ssl
 
