@@ -1,0 +1,60 @@
+下载cfssl和cfssljson命令
+master01节点下载证书生成工具
+wget "https://mirrors.chenby.cn/https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssl_1.6.4_linux_amd64" -O /usr/local/bin/cfssl
+wget "https://mirrors.chenby.cn/https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssljson_1.6.4_linux_amd64" -O /usr/local/bin/cfssljson
+
+下载etcd3.5.10
+wget https://mirrors.chenby.cn/https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
+
+
+创建工作目录：
+mkdir /k8ssrc/etcd/wal -p
+创建证书目录：mkdir /etc/etcd/ssl
+创建etcd数据库使用的ca证书请求文件：
+创建ca证书配置文件：vim ca-config
+创建etcd证书请求文件：
+生成etcd的ca证书：cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare etcd-ca
+生成etcd证书：cfssl gencert -ca=etcd-ca.pem -ca-key=etcd-ca-key.pem -config=ca-config.json -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
+分发证书：scp etcd*pem k8s-master03:/etc/etcd/ssl/
+创建启动配置文件：vim /etc/etcd/etcd.config.yml
+分发给集群其他节点：scp etcd.config.yml k8s-master03:/etc/etcd/
+scp etcd.config.yml k8s-master02:/etc/etcd/
+修改其他节点配置文件
+
+创建system管理的启动文件service
+
+重新加载：systemctl daemon-reload
+设置开机自启并立即启动：systemctl enable --now etcd.service
+查看服务状态：systemctl status etcd.service
+
+查看集群状态：
+etcdctl --endpoints="192.168.100.10:2379,192.168.100.11:2379,192.168.100.12:2379" --cacert=/etc/etcd/ssl/etcd-ca.pem --cert=/etc/etcd/ssl/etcd.pem --key=/etc/etcd/ssl/etcd-key.pem endpoint status --write-out=table
+
+列出集群节点：etcdctl member list --write-out=table
+检查集群健康：etcdctl endpoint health --write-out=table
+检查集群性能：etcdctl check perf
+
+数据操作和查询
+插入/更改：etcdctl put <key> <value>    etcdctl put ljp 李金彭
+查询：etcdctl get ljp
+删除：etcdctl del ljp
+监控：etcdctl watch ljp
+
+备份
+创建备份快照目录：mkdir /k8ssrc/snapshot
+创建备份到本机：etcdctl snapshot save /k8ssrc/snapshot/6_26.db
+指定节点备份到本机命令：
+etcdctl --endpoints="https://192.168.100.12:2379" --cacert=/etc/etcd/ssl/etcd-ca.pem --cert=/etc/etcd/ssl/etcd.pem --key=/etc/etcd/ssl/etcd-key.pem snapshot save /k8ssrc/snapshot/6_26ggz.db
+注：ETCD集群数据都是一样的，任何一台节点上执行都是可以的
+
+集群恢复：
+Etcd集群恢复并不是简单快照覆盖，需要重新指定工作目录，原先的工作目录需要腾空
+创建备份存放目录：mkdir /k8ssrc/etcd-backup
+首先停止kube-apiserver（没有略过）
+停止所有etcd节点：systemctl stop etcd
+备份工作（数据）目录：tar czf etcd.tar.gz /k8ssrc/etcd
+移动到备份目录：mv etcd.tar.gz /k8ssrc/etcd
+所有节点恢复快照：etcdctl snapshot restore /k8ssrc/snapshot/6_26ggz.db --data-dir=/k8ssrc/etcd
+成功后，此时如果查看etcd目录会发现里面多了一个member目录，并且有数据
+启动集群：systemctl start etcd
+检查：etcdctl get <key> <value>
