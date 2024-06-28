@@ -15,27 +15,33 @@ hostnamectl set-hostname etcd01
 hostnamectl set-hostname etcd02
 hostnamectl set-hostname etcd03
 
-# 免密登录
+# 三台均做免密登录，可以互相免密登录、传输
 ssh-keygen
 全部默认回车即可
 
 # 分发公钥给其他节点
-ssh-copy-id root@k8s-master02
-ssh-copy-id root@k8s-master03
+ssh-copy-id root@etcd02
+ssh-copy-id root@etcd01
+ssh-copy-id root@etcd03
 
+--------------------------------------------------------------------------------------------------------------
 # 方法一(推荐)：直接下载源码项目，已包含所有内容
-git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
+cd /opt/ && git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
 
+# 复制命令到bin下：
+cd /opt/etcd*/src && cp ./cfssl* /usr/local/bin/
+# 赋予执行权限：
+chmod +x /usr/local/bin/cfssl*
+--------------------------------------------------------------------------------------------------------------
 方法二：手动下载
-# k8s-master01节点下载证书生成工具:cfssl和cfssljson命令
+# etcd01节点下载证书生成工具:cfssl和cfssljson命令
 wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssl_1.6.4_linux_amd64" -O /usr/local/bin/cfssl
 wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssljson_1.6.4_linux_amd64" -O /usr/local/bin/cfssljson
-
 # 添加执行权限
 chmod +x /usr/local/bin/cfssl*
-
 # 下载etcd-3.5.10
 wget https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
+---------------------------------------------------------------------------------------------------------------
 
 # 解压ETCD
 tar xf etcd-3.5.10-linux-amd64.tar.gz
