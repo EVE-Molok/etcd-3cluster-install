@@ -75,12 +75,12 @@ vim ca-config.json
       # 默认签名配置`default`指定了证书的过期时间为`876000h`。`876000h`表示证书有效期为100年。
       # 
       # `profiles`部分定义了不同的证书配置文件。
-      # 在这里，只有一个配置文件`kubernetes`，为了简便，并没有区分为“server”，“client”，“peer”；它包含了以下`usages`和过期时间`expiry`：
+      # 在这里，只有一个配置模块`kubernetes`，为了简便，它具备伙伴证书的所需权限；它包含了以下`usages`和过期时间`expiry`：
       # 
       # 1. `signing`：用于对其他证书进行签名
       # 2. `key encipherment`：用于加密和解密传输数据
-      # 3. `server auth`：用于服务器身份验证
-      # 4. `client auth`：用于客户端身份验证
+      # 3. `server auth`：服务器身份验证
+      # 4. `client auth`：客户端身份验证
       # 
       # 对于`kubernetes`配置文件，证书的过期时间也是`876000h`，即100年。
       # 
