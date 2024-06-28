@@ -18,7 +18,7 @@ ssh-keygen
 ssh-copy-id root@k8s-master02
 ssh-copy-id root@k8s-master03
 
-# 方法一：直接下载源码项目，已包含所有内容
+# 方法一(推荐)：直接下载源码项目，已包含所有内容
 git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
 
 方法二：手动下载
