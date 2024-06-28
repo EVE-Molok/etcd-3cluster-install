@@ -6,9 +6,14 @@ ip分别为：
 
 # 做好主机名映射
 vim /etc/hosts
-192.168.100.10 k8s-master01
-192.168.100.11 k8s-master02
-192.168.100.12 k8s-master03
+192.168.100.10 etcd01
+192.168.100.11 etcd02
+192.168.100.12 etcd03
+
+# 更改主机名
+hostnamectl set-hostname etcd01
+hostnamectl set-hostname etcd02
+hostnamectl set-hostname etcd03
 
 # 免密登录
 ssh-keygen
