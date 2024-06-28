@@ -18,6 +18,10 @@ ssh-keygen
 ssh-copy-id root@k8s-master02
 ssh-copy-id root@k8s-master03
 
+# 方法一：直接下载源码项目，已包含所有内容
+git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
+
+方法二：手动下载
 # k8s-master01节点下载证书生成工具:cfssl和cfssljson命令
 wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssl_1.6.4_linux_amd64" -O /usr/local/bin/cfssl
 wget "https://github.com/cloudflare/cfssl/releases/download/v1.6.4/cfssljson_1.6.4_linux_amd64" -O /usr/local/bin/cfssljson
