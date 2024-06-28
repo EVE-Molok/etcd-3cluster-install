@@ -27,11 +27,28 @@ ssh-copy-id root@etcd03
 --------------------------------------------------------------------------------------------------------------
 # 方法一(推荐)：直接下载源码项目，已包含所有内容
 cd /opt/ && git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
+[root@k8s-master01 ~]# git clone https://github.com/EVE-Molok/etcd-3cluster-install.git
+Cloning into 'etcd-3cluster-install'...
+remote: Enumerating objects: 82, done.
+remote: Counting objects: 100% (82/82), done.
+remote: Compressing objects: 100% (78/78), done.
+remote: Total 82 (delta 23), reused 0 (delta 0), pack-reused 0
+Unpacking objects: 100% (82/82), done.
 
-# 复制命令到bin下：
-cd /opt/etcd*/src && cp ./cfssl* /usr/local/bin/
+cd /opt/etcd*/src
+# 命令改名：
+[root@etcd01 src]# mv cfssl_1.6.5_linux_amd64 cfssl
+[root@etcd01 src]# mv cfssl-certinfo_1.6.5_linux_amd64 cfssl-certinfo
+[root@etcd01 src]# mv cfssljson_1.6.5_linux_amd64 cfssljson
+# 复制到bin目录下
+cp ./cfssl* /usr/local/bin/
 # 赋予执行权限：
 chmod +x /usr/local/bin/cfssl*
+# 检查
+[root@etcd01 src]# which cfssl && which cfssljson
+/usr/local/bin/cfssl
+/usr/local/bin/cfssljson
+
 --------------------------------------------------------------------------------------------------------------
 方法二：手动下载
 # etcd01节点下载证书生成工具:cfssl和cfssljson命令
@@ -47,8 +64,8 @@ wget https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linu
 tar xf etcd-3.5.10-linux-amd64.tar.gz
 
 # 将命令etcd和etcdctl移动到/usr/local/bin/下
-mv etcd-*/etcd /usr/local/bin/
-mv etcd-*/etcdctl /usr/local/bin/
+cp etcd-*/etcd /usr/local/bin/
+cp etcd-*/etcdctl /usr/local/bin/
 
 # 查看版本
 [root@k8s-master01 ~]# etcdctl version
@@ -56,11 +73,13 @@ etcdctl version: 3.5.10
 API version: 3.5
 
 # 创建工作目录：
-mkdir /data/etcd/
+mkdir -p /data/etcd/
 # 创建证书目录：
-mkdir /etc/etcd/ssl
+mkdir -p /etc/etcd/ssl
 
-# 创建etcd数据库使用的证书配置文件：
+# 如果是git拉取的源码包，那么直接移动证书即可：
+cp /opt/etcd*/ssl/* /etc/etcd/ssl/
+# 或者创建etcd数据库使用的证书配置文件：
 vim ca-config.json
 {
   "signing": {
@@ -147,7 +166,7 @@ cfssl gencert -initca etcd-ca-csr.json | cfssljson -bare etcd-ca
       # etcd-ca-csr.json是一个JSON格式的配置文件，其中包含了CA的详细信息，如私钥、公钥、有效期等。这个文件提供了生成CA证书所需的信息。
       # cfssljson是cfssl工具的一个子命令，用于格式化cfssl生成的JSON数据。 -bare参数表示直接输出裸证书，即只生成证书文件，不包含其他格式的文件
 
-# 创建etcd的证书请求文件：
+# 创建etcd的证书请求文件(记得修改hosts字段)：
 vim etcd-csr.json
 {
   "CN": "etcd",
@@ -162,9 +181,9 @@ vim etcd-csr.json
     "192.168.100.13",
     "192.168.100.14",
     "127.0.0.1",
-    "k8s-master01",
-    "k8s-master02",
-    "k8s-master03"
+    "etcd01",
+    "etcd02",
+    "etcd03"
   ],
   "names": [
     {
@@ -197,12 +216,12 @@ vim etcd-csr.json
 cfssl gencert -ca=etcd-ca.pem -ca-key=etcd-ca-key.pem -config=ca-config.json -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
 
 # 分发证书：
-scp etcd*pem k8s-master03:/etc/etcd/ssl/
-scp etcd*pem k8s-master02:/etc/etcd/ssl/
+scp /etc/etcd/ssl/etcd*pem etcd03:/etc/etcd/ssl/
+scp /etc/etcd/ssl/etcd*pem etcd02:/etc/etcd/ssl/
 
 # 创建etcd配置文件：
 vim /etc/etcd/etcd.config.yml
-name: 'k8s-master01'
+name: 'etcd01'
 data-dir: /data/etcd
 wal-dir: /data/etcd/wal
 snapshot-count: 5000
@@ -220,7 +239,7 @@ discovery:
 discovery-fallback: 'proxy'
 discovery-proxy:
 discovery-srv:
-initial-cluster: 'k8s-master01=https://192.168.100.10:2380,k8s-master02=https://192.168.100.11:2380,k8s-master03=https://192.168.100.12:2380'
+initial-cluster: 'etcd01=https://192.168.100.10:2380,etcd02=https://192.168.100.11:2380,etcd03=https://192.168.100.12:2380'
 initial-cluster-token: 'etcd-k8s-cluster'
 initial-cluster-state: 'new'
 strict-reconfig-check: false
@@ -281,8 +300,7 @@ force-new-cluster: false
 
 
 # 分发给集群其他节点：
-scp etcd.config.yml k8s-master03:/etc/etcd/
-scp etcd.config.yml k8s-master02:/etc/etcd/
+scp /etc/etcd/etcd.config.yml etcd03:/etc/etcd/ && scp /etc/etcd/etcd.config.yml etcd02:/etc/etcd/
 
 # 修改其他两个节点配置文件
 主要修改name、以及地址参数
@@ -319,11 +337,13 @@ Alias=etcd3.service
       # 
       # 这个配置文件描述了如何启动和管理Etcd服务，并将其安装到系统中。通过这个配置文件，可以确保Etcd服务在系统启动后自动启动，并在出现问题时进行重启。
 
+# 分发到其他节点上
+scp /usr/lib/systemd/system/etcd.service etcd02:/usr/lib/systemd/system/ && scp /usr/lib/systemd/system/etcd.service etcd03:/usr/lib/systemd/system/
 
-# 重新加载：用于重新加载systemd管理的单位文件。当你新增或修改了某个单位文件（如.service文件、.socket文件等），需要运行该命令来刷新systemd对该文件的配置
+# 三个节点重新加载：用于重新加载systemd管理的单位文件。当你新增或修改了某个单位文件（如.service文件、.socket文件等），需要运行该命令来刷新systemd对该文件的配置
 systemctl daemon-reload
 
-# 设置开机自启并立即启动：
+# 三节点设置开机自启并立即启动：
 systemctl enable --now etcd.service
 
 # 查看服务状态：
@@ -343,15 +363,16 @@ etcdctl --endpoints="192.168.100.10:2379,192.168.100.11:2379,192.168.100.12:2379
       # 通过执行这个命令，可以获取到etcd集群节点的健康状态，并以表格形式展示。
 
 
-# 列出集群节点：下面三个命令不需要强制指定成员地址和证书路径
+# 列出集群节点：
 etcdctl member list --write-out=table
 # 检查集群健康：
-etcdctl endpoint health --write-out=table
+etcdctl --endpoints="192.168.100.10:2379,192.168.100.11:2379,192.168.100.12:2379" --cacert=/etc/etcd/ssl/etcd-ca.pem --cert=/etc/etcd/ssl/etcd.pem --key=/etc/etcd/ssl/etcd-key.pem endpoint health --write-out=table
 # 检查集群性能：
 etcdctl check perf
 
 # 数据操作和查询
-# 插入/更改：etcdctl put <key> <value>    etcdctl put eve molok
+# 插入/更改：etcdctl put <key> <value>
+   etcdctl put eve molok
 # 查询：etcdctl get eve
 # 删除：etcdctl del eve
 # 监控：etcdctl watch eve
@@ -376,7 +397,7 @@ mkdir /data/etcd-backup
 
 # 首先停止kube-apiserver（没有略过）
 
-# 停止所有etcd节点：
+# 停止所有etcd节点服务：
 systemctl stop etcd
 
 # 备份工作（数据）目录：
