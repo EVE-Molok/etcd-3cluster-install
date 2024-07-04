@@ -407,17 +407,20 @@ mkdir /data/etcd-backup
 
 # 首先停止kube-apiserver（没有略过）
 
-# 停止所有etcd节点服务：
+# 停止所有节点etcd节点服务：
 systemctl stop etcd
 
-# 备份工作（数据）目录：
-tar -czf etcd.tar.gz /data/etcd
+# 所有节点备份工作（数据）目录：
+cd /data/ && tar -czf etcd.tar.gz etcd
 
 # 移动到备份目录：
 mv etcd.tar.gz /data/etcd-backup/
 
+# 所有节点删除原目录下的数据
+rm -rf /data/etcd/*
+
 # 所有节点恢复快照：在所有节点都执行此命令
-etcdctl snapshot restore /k8ssrc/snapshot/6_26ggz.db --data-dir=/k8ssrc/etcd
+etcdctl snapshot restore /data/snapshot/6_26ggz.db --data-dir=/data/etcd
 
 # 成功后，此时如果查看etcd目录会发现里面多了一个member目录，并且有数据
 
