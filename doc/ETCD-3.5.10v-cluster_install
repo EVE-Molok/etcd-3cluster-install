@@ -298,6 +298,9 @@ force-new-cluster: false
       - `log-outputs`：指定了日志的输出类型。
       - `force-new-cluster`：是否强制创建一个新的集群。
 
+# 关于quota-backend-bytes参数
+# etcd 启动的时候，需打开 boltdb db 文件，读取 db 文件所有 key-value 数据，用于重建内存 treeIndex 模块。因此在大量 key 导致 db 文件过大的场景中，这会导致 etcd 启动较慢。
+# 其次是节点内存配置。etcd 在启动的时候会通过 mmap 将 db 文件映射内存中，若节点可用内存不足，小于 db 文件大小时，可能会出现缺页文件中断，导致服务稳定性、性能下降。
 
 # 分发给集群其他节点：
 scp /etc/etcd/etcd.config.yml etcd03:/etc/etcd/ && scp /etc/etcd/etcd.config.yml etcd02:/etc/etcd/
