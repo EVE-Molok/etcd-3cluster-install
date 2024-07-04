@@ -60,26 +60,33 @@ chmod +x /usr/local/bin/cfssl*
 wget https://github.com/etcd-io/etcd/releases/download/v3.5.10/etcd-v3.5.10-linux-amd64.tar.gz
 ---------------------------------------------------------------------------------------------------------------
 
-# 解压ETCD
-tar xf etcd-3.5.10-linux-amd64.tar.gz
+# 解压ETCD并改名
+cd /opt/etcd*/src && tar xf etcd-v3.5.10-linux-amd64.tar.gz && mv etcd-v3.5.10-linux-amd64 etcd
 
 # 将命令etcd和etcdctl移动到/usr/local/bin/下
-cp etcd-*/etcd /usr/local/bin/
-cp etcd-*/etcdctl /usr/local/bin/
+cp etcd/etcd /usr/local/bin/
+cp etcd/etcdctl /usr/local/bin/
+
+# 分发ETCD和CFSSL到其他两个节点上
+scp /usr/local/bin/cfssl* etcd02:/usr/local/bin/
+scp /usr/local/bin/cfssl* etcd03:/usr/local/bin/
+scp /usr/local/bin/etcd* etcd02:/usr/local/bin/
+scp /usr/local/bin/etcd* etcd03:/usr/local/bin/
+
 
 # 查看版本
 [root@k8s-master01 ~]# etcdctl version
 etcdctl version: 3.5.10
 API version: 3.5
 
-# 创建工作目录：
+# 三个节点创建工作目录：
 mkdir -p /data/etcd/
-# 创建证书目录：
+# 三个节点创建证书目录：
 mkdir -p /etc/etcd/ssl
 
-# 如果是git拉取的源码包，那么直接移动证书即可：
-cp /opt/etcd*/ssl/* /etc/etcd/ssl/
-# 或者创建etcd数据库使用的证书配置文件：
+#######################（ 如果是git拉取的源码包，那么直接移动证书即可：cp /opt/etcd/ssl/* /etc/etcd/ssl/）
+
+# 或者创建etcd数据库使用的证书配置文件（在/etc/etcd/ssl目录下创建）：
 vim ca-config.json
 {
   "signing": {
