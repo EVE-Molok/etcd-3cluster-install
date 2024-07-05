@@ -420,7 +420,7 @@ mv etcd.tar.gz /data/etcd-backup/
 rm -rf /data/etcd/*
 
 # 所有节点恢复快照：在所有节点都执行此命令
-etcdctl snapshot restore /data/snapshot/6_26ggz.db --data-dir=/data/etcd
+etcdctl snapshot restore /data/snapshot/6_26.db --data-dir=/data/etcd
 
 # 成功后，此时如果查看etcd目录会发现里面多了一个member目录，并且有数据
 
